@@ -1,7 +1,7 @@
 {
   "name": "blinko-cli",
-  "description": "a blinko cli",
-  "version": "0.0.1",
+  "description": "a blinko cli for development and release",
+  "version": "0.0.2",
   "author": "blinko",
   "bin": {
     "blinko-cli": "./bin/run.js"
@@ -13,7 +13,8 @@
     "@oclif/plugin-plugins": "^5",
     "adm-zip": "^0.5.16",
     "chalk": "^5.4.1",
-    "ora": "^8.2.0"
+    "ora": "^8.2.0",
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@eslint/compat": "^1",
@@ -23,6 +24,7 @@
     "@types/chai": "^4",
     "@types/mocha": "^10",
     "@types/node": "^18",
+    "@types/ws": "^8.18.0",
     "chai": "^4",
     "eslint": "^9",
     "eslint-config-oclif": "^6",

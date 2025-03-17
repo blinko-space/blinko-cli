@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/commands/release/plugin.ts"],"version":"5.7.3"}
+{"root":["./src/index.ts","./src/commands/dev/server.ts","./src/commands/release/plugin.ts"],"version":"5.7.3"}
