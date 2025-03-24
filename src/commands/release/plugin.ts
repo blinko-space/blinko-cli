@@ -1,11 +1,11 @@
-import {Command, Flags} from '@oclif/core'
-import {promisify} from 'util'
+import { Command, Flags } from '@oclif/core'
+import { promisify } from 'util'
 import * as fs from 'fs'
 import * as path from 'path'
 import AdmZip from 'adm-zip'
 import chalk from 'chalk'
 import ora from 'ora'
-import {exec, spawn} from 'child_process'
+import { exec, spawn } from 'child_process'
 
 const execAsync = promisify(exec)
 

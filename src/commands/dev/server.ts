@@ -22,6 +22,12 @@ interface ServerOptions {
   viteCommand?: string
 }
 
+interface FileInfo {
+  fileName: string;
+  content: string;
+  fileType: string; // Used to identify file type
+}
+
 class BlinkoDevServer {
   private wss: WebSocketServer
   private httpServer: http.Server | null = null
@@ -75,45 +81,79 @@ class BlinkoDevServer {
   }
 
   /**
-   * Retrieves the latest build file from the dist directory.
+   * Recursively retrieves all files from a directory
    */
-  private getLatestBuildFile(): string | undefined {
-    const files = fs.readdirSync(this.options.distDir)
-    return files.find(
-      (file) => file.startsWith("index_") && file.endsWith(".js")
-    )
+  private getAllFiles(dir: string, fileList: FileInfo[] = []): FileInfo[] {
+    const files = fs.readdirSync(dir);
+    
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      
+      if (fs.statSync(filePath).isDirectory()) {
+        // Recursively get files from subdirectories
+        this.getAllFiles(filePath, fileList);
+      } else {
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const fileType = path.extname(file).slice(1); // Remove dot
+          
+          // Create relative path from dist directory
+          const relativePath = path.relative(this.options.distDir, filePath);
+          
+          fileList.push({
+            fileName: relativePath, // Use relative path as filename
+            content,
+            fileType
+          });
+        } catch (error) {
+          console.error(chalk.red(`❌ Failed to read file ${filePath}:`), error);
+        }
+      }
+    }
+    
+    return fileList;
   }
 
   /**
-   * Sends the latest build code to a connected WebSocket client.
+   * Gets all files from the dist directory, including subdirectories
+   */
+  private getLatestBuildFiles(): FileInfo[] {
+    return this.getAllFiles(this.options.distDir);
+  }
+
+  /**
+   * Sends the latest build files to a connected WebSocket client
    */
   private sendLatestCode(client: WebSocket): void {
     try {
-      const fileName = this.getLatestBuildFile()
-      if (!fileName) {
-        console.error(chalk.red("❌ No build file found."))
-        return
+      const files = this.getLatestBuildFiles();
+      
+      if (files.length === 0) {
+        console.error(chalk.red("❌ No build files found"));
+        return;
       }
+      
+      // Log found files
+      files.forEach(file => {
+        console.log(
+          chalk.green(
+            `📦 ${file.fileType.toUpperCase()} file size: ${file.content.length} bytes, filename: ${file.fileName}`
+          )
+        );
+      });
 
-      const code = fs.readFileSync(path.join(this.options.distDir, fileName), "utf-8")
-      console.log(
-        chalk.green(
-          `📦 Build code size: ${code.length} bytes, Filename: ${fileName}`
-        )
-      )
-
+      // Send all files to client
       if (client.readyState === 1) { // WebSocket.OPEN
         client.send(
           JSON.stringify({
             type: "code",
-            fileName,
             metadata: this.pluginMetadata,
-            code: code,
+            files: files
           })
-        )
+        );
       }
     } catch (error) {
-      console.error(chalk.red("❌ Failed to read file:"), error)
+      console.error(chalk.red("❌ Failed to read files:"), error);
     }
   }
 
@@ -325,19 +365,19 @@ class BlinkoDevServer {
    */
   private watchDistDirectory(): void {
     watch(this.options.distDir, { recursive: true }, (eventType, filename) => {
-      if (filename && filename.endsWith(".js")) {
+      if (filename) {
         // Clear the previous timer
         if (this.debounceTimer) {
-          clearTimeout(this.debounceTimer)
+          clearTimeout(this.debounceTimer);
         }
 
         // Set a new debounce timer
         this.debounceTimer = setTimeout(() => {
-          console.log(chalk.blue(`🔄 Build completed, file updated: ${filename}`))
-          this.wss.clients.forEach(client => this.sendLatestCode(client))
-        }, 100) // 100ms debounce delay
+          console.log(chalk.blue(`🔄 Build completed, file updated: ${filename}`));
+          this.wss.clients.forEach(client => this.sendLatestCode(client));
+        }, 100); // 100ms debounce delay
       }
-    })
+    });
   }
 
   /**

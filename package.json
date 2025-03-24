@@ -1,7 +1,7 @@
 {
   "name": "blinko-cli",
   "description": "a blinko cli for development and release",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "blinko",
   "bin": {
     "blinko-cli": "./bin/run.js"
